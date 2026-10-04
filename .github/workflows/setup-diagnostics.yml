@@ -1,0 +1,100 @@
+name: Setup Diagnostics
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check gist and Gmail without trading
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          TRADING_GIST_ID: ${{ secrets.TRADING_GIST_ID }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import urllib.request
+          import urllib.error
+          import smtplib
+          import ssl
+
+          token = os.environ.get("GIST_TOKEN", "").strip()
+          gid = os.environ.get("TRADING_GIST_ID", "").strip()
+
+          if not token or not gid:
+              print("GIST: missing token or trading gist ID")
+          elif len(gid) != 32 or any(c not in "0123456789abcdef" for c in gid.lower()):
+              print("GIST: ID must be 32 characters, without the URL")
+          else:
+              request = urllib.request.Request(
+                  "https://api.github.com/gists/" + gid,
+                  headers={
+                      "Authorization": "Bearer " + token,
+                      "Accept": "application/vnd.github+json"
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=20) as response:
+                      data = json.load(response)
+                      scopes = response.headers.get("X-OAuth-Scopes", "")
+                  print("GIST: read succeeded")
+                  print("GIST: gist permission present:",
+                        "gist" in [s.strip() for s in scopes.split(",")])
+                  state_file = data.get("files", {}).get("trading_state.json")
+                  if not state_file:
+                      print("GIST: trading_state.json missing")
+                  else:
+                      state = json.loads(state_file["content"])
+                      print("GIST: history records:", len(state.get("history", [])))
+                      print("GIST: owned coins:", state.get("owned_coins", []))
+              except urllib.error.HTTPError as error:
+                  print("GIST: HTTP error", error.code)
+              except Exception as error:
+                  print("GIST: failed with", type(error).__name__)
+
+          user = os.environ.get("GMAIL_USER", "").strip()
+          password = "".join(os.environ.get("GMAIL_APP_PASSWORD", "").split())
+
+          if not user or not password:
+              print("EMAIL: missing Gmail address or app password")
+          else:
+              for mode in ("SSL 465", "STARTTLS 587"):
+                  stage = "connection"
+                  server = None
+                  try:
+                      print("EMAIL:", mode, "connecting")
+                      if mode == "SSL 465":
+                          server = smtplib.SMTP_SSL(
+                              "smtp.gmail.com", 465, timeout=20,
+                              context=ssl.create_default_context()
+                          )
+                      else:
+                          server = smtplib.SMTP(
+                              "smtp.gmail.com", 587, timeout=20
+                          )
+                          stage = "STARTTLS"
+                          server.ehlo()
+                          server.starttls(context=ssl.create_default_context())
+                          server.ehlo()
+                      print("EMAIL:", mode, "connection succeeded")
+                      stage = "authentication"
+                      server.login(user, password)
+                      print("EMAIL:", mode, "authentication succeeded; no email sent")
+                  except smtplib.SMTPAuthenticationError as error:
+                      print("EMAIL:", mode,
+                            "authentication rejected; SMTP code", error.smtp_code)
+                  except Exception as error:
+                      print("EMAIL:", mode, "failed at", stage,
+                            "with", type(error).__name__)
+                  finally:
+                      if server:
+                          server.close()
+          PY
