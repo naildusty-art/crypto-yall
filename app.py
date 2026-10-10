@@ -21,7 +21,7 @@ from trading_state import load_trading_state, load_intraday_state, load_aggressi
 # Hyperliquid symbol map for the live trading panel
 HL_TICKER_MAP = {
     "BTC-USD": "BTC", "ETH-USD": "ETH", "SOL-USD": "SOL",
-    "AVAX-USD": "AVAX", "LINK-USD": "LINK", "SUI20947-USD": "SUI", "XRP-USD": "XRP",
+    "AVAX-USD": "AVAX", "LINK-USD": "LINK", "SUI20947-USD": "SUI", "XRP-USD": "XRP", "HBAR-USD": "HBAR",
 }
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -119,6 +119,7 @@ ASSETS = {
     "LINK-USD": "Chainlink (LINK)",
     "SUI20947-USD": "Sui (SUI)",
     "XRP-USD": "XRP",
+    "HBAR-USD": "Hedera (HBAR)",
 }
 ticker = st.sidebar.selectbox(
     "Asset",

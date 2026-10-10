@@ -36,6 +36,7 @@ ASSETS = {
     "LINK-USD": "Chainlink (LINK)",
     "SUI20947-USD": "Sui (SUI)",
     "XRP-USD": "XRP",
+    "HBAR-USD": "Hedera (HBAR)",
 }
 
 STATE_FILENAME = "signal_state.json"

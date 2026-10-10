@@ -22,6 +22,7 @@ HL_SYMBOL_MAP = {
     "LINK-USD": "LINK",
     "SUI20947-USD": "SUI",
     "XRP-USD": "XRP",
+    "HBAR-USD": "HBAR",
 }
 
 

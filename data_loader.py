@@ -9,7 +9,7 @@ import time
 import pandas as pd
 import yfinance as yf
 
-TICKERS = ["BTC-USD", "ETH-USD", "SOL-USD", "AVAX-USD", "LINK-USD", "SUI20947-USD", "XRP-USD"]
+TICKERS = ["BTC-USD", "ETH-USD", "SOL-USD", "AVAX-USD", "LINK-USD", "SUI20947-USD", "XRP-USD", "HBAR-USD"]
 ANCHOR_START = dt.date(2022, 3, 1)  # Fixed start date — never shifts
 
 
