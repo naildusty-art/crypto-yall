@@ -80,6 +80,7 @@ def causal_hmm_regimes(
     covariance_type: str = "diag",
     n_iter: int = 50,
     random_state: int = 42,
+    confirm_days: int = 5,
 ) -> Tuple[pd.Series, pd.Series, pd.Series]:
     """
     Expanding-window HMM regime detection — **strictly causal**.
@@ -170,7 +171,8 @@ def causal_hmm_regimes(
 
     # ── Smooth regimes: require N consecutive days to confirm switch ──
     smoothed = regimes.copy()
-    confirm_days = 5
+    if confirm_days < 1:
+        raise ValueError("confirm_days must be positive")
     current = None
     pending = None
     pending_count = 0
@@ -199,3 +201,4 @@ def causal_hmm_regimes(
             smoothed.iloc[t] = current
 
     return smoothed, bull_probs, bear_probs
+

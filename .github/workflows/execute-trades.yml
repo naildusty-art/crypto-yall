@@ -5,6 +5,10 @@ on:
     - cron: '15 0 * * *'     # Daily at 00:15 UTC (15 min after signal refresh)
   workflow_dispatch: {}       # Manual trigger for testing
 
+concurrency:
+  group: daily-hyperliquid-executor
+  cancel-in-progress: false
+
 jobs:
   trade:
     runs-on: ubuntu-latest
@@ -18,6 +22,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Validate execution safety (offline)
+        run: python -m unittest test_execution_safety -q
 
       - name: Execute trades on Hyperliquid
         run: python hyperliquid_executor.py
@@ -36,3 +43,4 @@ jobs:
           NOTIFY_EMAILS: ${{ secrets.NOTIFY_EMAILS }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
