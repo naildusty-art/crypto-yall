@@ -43,13 +43,17 @@ class ExecutionTests(unittest.TestCase):
         return bot.execute_trade(self.info, self.exchange, trade or TRADE,
                                  capital, leverage, "test-account", self.journal)
 
-    def test_order_under_minimum_is_not_rounded_up(self):
+    def test_order_under_minimum_is_raised_to_20_dollars(self):
         self.info.all_mids.return_value = {"BTC": "83200"}
+        self.exchange.market_open.return_value = response(size=0.00025, price=83200)
         result = self.execute(leverage=1)
-        self.assertEqual(result["status"], "skipped")
-        self.assertIn("below", result["reason"])
-        self.assertLess(result["rounded_notional"], 10)
-        self.exchange.market_open.assert_not_called()
+        self.assertEqual(result["status"], "filled")
+        self.assertTrue(result["raised_to_minimum"])
+        self.assertEqual(result["target_notional"], 10)
+        self.assertEqual(result["requested_size"], 0.00025)
+        self.assertGreaterEqual(result["rounded_notional"], 20)
+        self.assertAlmostEqual(result["rounded_notional"], 20.8)
+        self.exchange.market_open.assert_called_once()
 
     def test_valid_order_is_journaled_before_submission(self):
         events = []
