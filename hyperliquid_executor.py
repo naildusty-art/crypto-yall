@@ -71,7 +71,7 @@ ASSETS = {
 
 STATE_FILENAME = "trading_state.json"
 POSITION_SIZE_PCT = 0.01  # 1% of segregated capital per trade
-MIN_ORDER_NOTIONAL = 10.0
+MIN_ORDER_NOTIONAL = 20.0
 
 
 def read_with_retry(call, *args, **kwargs):
@@ -347,6 +347,14 @@ def round_size(size: float, sz_decimals: int) -> float:
     return float(Decimal(str(size)).quantize(q, rounding=ROUND_DOWN))
 
 
+def round_size_up(size: float, sz_decimals: int) -> float:
+    """Round a minimum order size up to the coin's size precision."""
+    if sz_decimals <= 0:
+        return float(math.ceil(size))
+    q = Decimal("1").scaleb(-sz_decimals)
+    return float(Decimal(str(size)).quantize(q, rounding="ROUND_CEILING"))
+
+
 def get_size_decimals(info, coin: str) -> int:
     meta = read_with_retry(info.meta)
     for universe in meta.get("universe", []):
@@ -381,13 +389,19 @@ def execute_trade(info, exchange, trade: dict, capital: float, leverage: float,
             if not all(math.isfinite(x) and x > 0 for x in (capital, leverage)):
                 raise ValueError("Capital/leverage must be finite and positive")
             target = capital * POSITION_SIZE_PCT * leverage
-            size = round_size(target / mid, get_size_decimals(info, coin))
+            sz_decimals = get_size_decimals(info, coin)
+            size = round_size(target / mid, sz_decimals)
+            initial_notional = size * mid
+            raised_to_minimum = size > 0 and initial_notional < MIN_ORDER_NOTIONAL
+            if raised_to_minimum:
+                size = round_size_up(MIN_ORDER_NOTIONAL / mid, sz_decimals)
+            rounded_notional = size * mid
             details.update(target_notional=target, requested_size=size, reference_price=mid,
-                           rounded_notional=size * mid)
-            if size <= 0 or size * mid < MIN_ORDER_NOTIONAL:
+                           rounded_notional=rounded_notional,
+                           raised_to_minimum=raised_to_minimum)
+            if size <= 0 or rounded_notional < MIN_ORDER_NOTIONAL:
                 return {**details, "status": "skipped", "reason":
-                        f"Rounded order ${size * mid:.4f} is below ${MIN_ORDER_NOTIONAL:.2f} minimum; "
-                        "not increasing approved trade size"}
+                        f"Rounded order ${rounded_notional:.4f} remains below ${MIN_ORDER_NOTIONAL:.2f} minimum"}
             account = read_with_retry(info.user_state, address)
             available = float(account.get("withdrawable", 0))
             # Hyperliquid accepts integer leverage. Use the same integer for the margin check.
