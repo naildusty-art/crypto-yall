@@ -26,7 +26,7 @@ import time
 import uuid
 from html import escape
 import datetime as dt
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_CEILING, ROUND_DOWN
 
 import requests
 from eth_account import Account
@@ -352,7 +352,7 @@ def round_size_up(size: float, sz_decimals: int) -> float:
     if sz_decimals <= 0:
         return float(math.ceil(size))
     q = Decimal("1").scaleb(-sz_decimals)
-    return float(Decimal(str(size)).quantize(q, rounding="ROUND_CEILING"))
+    return float(Decimal(str(size)).quantize(q, rounding=ROUND_CEILING))
 
 
 def get_size_decimals(info, coin: str) -> int:
