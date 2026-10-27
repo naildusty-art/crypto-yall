@@ -1,0 +1,23 @@
+[Unit]
+Description=Crypto Yall read-only testnet position monitor
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=crypto-monitor
+WorkingDirectory=/opt/crypto-yall
+EnvironmentFile=/etc/crypto-yall-monitor.env
+Environment=HL_TESTNET=true
+Environment=MONITOR_STATUS_PATH=/var/lib/crypto-yall-monitor/status.json
+ExecStart=/opt/crypto-yall/.venv/bin/python -u position_monitor.py
+Restart=always
+RestartSec=10
+StateDirectory=crypto-yall-monitor
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
